@@ -17,4 +17,6 @@ app.MapGet("/", () => "Hello World!");
 app.MapTodosEndpoints();
 app.MapUserEndpoints();
 
+app.MigrateDb();
+
 app.Run();
