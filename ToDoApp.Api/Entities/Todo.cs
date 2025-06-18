@@ -11,6 +11,7 @@ public class Todo
     public int UserId { get; set; }
     public User? User { get; set; }
 
+    public required string Category { get; set; }
     public DateTime DueDate { get; set; }
 
     public bool Complete { get; set; }

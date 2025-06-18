@@ -1,4 +1,6 @@
+using ToDoApp.Api.Data;
 using ToDoApp.Api.DataTransferObjects;
+using ToDoApp.Api.Entities;
 
 namespace ToDoApp.Api.Endpoints;
 
@@ -59,16 +61,20 @@ public static class TodosEndpoints
             return todo is null ? Results.NotFound() : Results.Ok(todo);
         }).WithName(GetTodoById);
 
-        group.MapPost("/", (CreateTodoDto newTodo) =>
+        group.MapPost("/", (int userId, CreateTodoDto newTodo, TodoStoreContext dbContext) =>
         {
-            TodoDto todo = new(
-                todos.Count + 1,
-                newTodo.Name,
-                newTodo.Category,
-                newTodo.DueDate,
-                newTodo.Complete
-            );
-            todos.Add(todo);
+            Todo todo = new()
+            {
+                Name = newTodo.Name,
+                UserId = userId,
+                Category = newTodo.Category,
+                DueDate = newTodo.DueDate,
+                Complete = false, // defaulted to false
+            };
+
+            dbContext.Todos.Add(todo);
+            dbContext.SaveChanges();
+
             return Results.AcceptedAtRoute(GetTodoById, new { id = todo.Id }, todo);
         });
 
