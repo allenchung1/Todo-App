@@ -1,4 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using ToDoApp.Api.Data;
 using ToDoApp.Api.DataTransferObjects;
+using ToDoApp.Api.Entities;
+using ToDoApp.Api.Mapping;
+using ToDoApp.Api.Services;
 
 namespace ToDoApp.Api.Endpoints;
 
@@ -29,57 +38,79 @@ public static class UserEndpoints
 
         var group = app.MapGroup("users").WithParameterValidation();
 
-        group.MapGet("/", () => users);
+        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Users./*Include()*/Select(user => user.ToDto()).AsNoTracking());
 
-        group.MapGet("/{id}", (int id) =>
+        group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) =>
         {
-            UserDto? user = users.Find((user) => user.Id == id);
-            return user is null ? Results.NotFound() : Results.Ok(user);
+            User? user = await dbContext.Users.FindAsync(id);
+            return user is null ? Results.NotFound() : Results.Ok(user.ToDto());
         }).WithName(GetUserById);
 
-        group.MapPost("/", (CreateUserDto newUser) =>
+        group.MapPost("/", async (CreateUserDto newUser, TodoStoreContext dbContext) => //Minimal APIs use automatic model binding with JSON deserialization
         {
-        UserDto user = new(
-            users.Count + 1,
-            newUser.Username,
-            newUser.Email, //check for unique email
-            newUser.FirstName,
-            newUser.LastName,
-            DateTime.UtcNow
-            );
+            var found = await dbContext.Users.AnyAsync(user => user.Email == newUser.Email);
+            if (found)
+            {
+                return Results.BadRequest("Email is already in use.");
+            }
 
-            users.Add(user);
-            return Results.AcceptedAtRoute(GetUserById, new { id = user.Id }, user);
+            User user = newUser.ToEntity();
+
+            dbContext.Users.Add(user);
+            dbContext.SaveChanges();
+
+            return Results.AcceptedAtRoute(
+                GetUserById,
+                new { id = user.Id },
+                user.ToDto()
+            );
         });
 
-        group.MapPut("/{id}", (int id, UpdateUserDto updatedUser) =>
+        group.MapPut("/{id}", (int id, UpdateUserDto updatedUser, TodoStoreContext dbContext) => 
         {
-            int index = users.FindIndex((user) => user.Id == id);
+            var existingUser = dbContext.Users.Find(id);
 
-            if (index == -1)
+            if (existingUser is null)
             {
                 return Results.NotFound();
             }
 
-            users[index] = new UserDto(
-                id,
-                updatedUser.Username,
-                updatedUser.Email,
-                updatedUser.FirstName,
-                updatedUser.LastName,
-                users[index].CreatedAt
-            );
+            dbContext.Entry(existingUser).CurrentValues.SetValues(updatedUser.ToEntity(id));
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //batch delete
         {
-            users.RemoveAll((user) => user.Id == id);
+            dbContext.Users.Where(user => user.Id == id).ExecuteDelete();
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });
 
+        // group.MapPost("/login", (LoginDto login) =>
+        // {
+        //     var user = users.Find(u => u.Username == LoginDto.Username && u.Password == loginDto.Password);
+        //     if (user is null)
+        //     {
+        //         return Results.Unauthorized();
+        //     }
+
+        //     string token = tokenService.GenerateToken(user.Username, user.Id);
+        //     return Results.Ok(new { token });
+        // });
+
+        app.MapPost("/login", (LoginDto loginDto, JwtTokenService tokenService) =>
+        {
+
+            return new
+            {
+                access_token = tokenService.GenerateToken(loginDto.Email, loginDto.Password)
+            };
+        });
+
+        
         return group;
     }
 }

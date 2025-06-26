@@ -15,5 +15,5 @@ public class User
 
     public required string LastName { get; set; }
 
-    public DateTime CreatedAt { get; private set; }
+    public DateTime CreatedAt { get; set; }
 }
