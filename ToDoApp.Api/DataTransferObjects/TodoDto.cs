@@ -2,7 +2,8 @@ namespace ToDoApp.Api.DataTransferObjects;
 
 public record class TodoDto(
     int Id,
-    string Name, //userid
+    int UserId,
+    string Name,
     string Category,
     DateTime DueDate,
     bool Complete

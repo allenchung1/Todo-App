@@ -38,7 +38,7 @@ public static class UserEndpoints
 
         var group = app.MapGroup("users").WithParameterValidation();
 
-        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Users./*Include()*/Select(user => user.ToDto()).AsNoTracking());
+        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Users/*.Include()*/.Select(user => user.ToDto()).AsNoTracking());
 
         group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) =>
         {

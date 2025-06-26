@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using ToDoApp.Api.Data;
 using ToDoApp.Api.DataTransferObjects;
 using ToDoApp.Api.Entities;
+using ToDoApp.Api.Mapping;
 
 namespace ToDoApp.Api.Endpoints;
 
@@ -8,98 +10,92 @@ public static class TodosEndpoints
 {
     const string GetTodoById = "GetTodoById";
 
-    private static readonly List<TodoDto> todos = [
-        new (
-            1,
-            "take out the trash",
-            "chores",
-            DateTime.UtcNow.AddDays(1),
-            false
-        ),
-        new (
-            2,
-            "do the dishes",
-            "chores",
-            DateTime.UtcNow.AddDays(2),
-            false
-        ),
-        new (
-            3,
-            "do laundry",
-            "chores",
-            DateTime.UtcNow.AddDays(3),
-            false
-        ),
-        new (
-            4,
-            "mow the lawn",
-            "chores",
-            DateTime.UtcNow.AddDays(4),
-            false
-        ),
-        new (
-            5,
-            "vacuum",
-            "chores",
-            DateTime.UtcNow.AddDays(5),
-            false
-        ),
+    // private static readonly List<TodoDto> todos = [
+    //     new (
+    //         1,
+    //         "take out the trash",
+    //         "chores",
+    //         DateTime.UtcNow.AddDays(1),
+    //         false
+    //     ),
+    //     new (
+    //         2,
+    //         "do the dishes",
+    //         "chores",
+    //         DateTime.UtcNow.AddDays(2),
+    //         false
+    //     ),
+    //     new (
+    //         3,
+    //         "do laundry",
+    //         "chores",
+    //         DateTime.UtcNow.AddDays(3),
+    //         false
+    //     ),
+    //     new (
+    //         4,
+    //         "mow the lawn",
+    //         "chores",
+    //         DateTime.UtcNow.AddDays(4),
+    //         false
+    //     ),
+    //     new (
+    //         5,
+    //         "vacuum",
+    //         "chores",
+    //         DateTime.UtcNow.AddDays(5),
+    //         false
+    //     ),
 
-    ];
+    // ];
 
     public static RouteGroupBuilder MapTodosEndpoints(this WebApplication app) // extension method of WebApplication class
     {
         var group = app.MapGroup("todos").WithParameterValidation();
         
         // GET /todos
-        group.MapGet("/", () => todos); // /games/
+        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking());
 
         // GET /todos/1
-        group.MapGet("/{id}", (int id) =>
+        group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) => // add jwt authorization
         {
-            TodoDto? todo = todos.Find(todo => todo.Id == id);
+            Todo? todo = await dbContext.Todos.FindAsync(id);
             return todo is null ? Results.NotFound() : Results.Ok(todo);
         }).WithName(GetTodoById);
 
-        group.MapPost("/", (int userId, CreateTodoDto newTodo, TodoStoreContext dbContext) =>
+        group.MapPost("/", (CreateTodoDto newTodo, TodoStoreContext dbContext) =>
         {
-            Todo todo = new()
-            {
-                Name = newTodo.Name,
-                UserId = userId,
-                Category = newTodo.Category,
-                DueDate = newTodo.DueDate,
-                Complete = false, // defaulted to false
-            };
+            Todo todo = newTodo.ToEntity();
 
             dbContext.Todos.Add(todo);
             dbContext.SaveChanges();
 
-            return Results.AcceptedAtRoute(GetTodoById, new { id = todo.Id }, todo);
+            return Results.AcceptedAtRoute(
+                GetTodoById,
+                new { id = todo.Id },
+                todo.ToDto()
+            );
         });
 
-        group.MapPut("/{id}", (int id, UpdateTodoDto updatedTodo) =>
+        group.MapPut("/{id}", async (int id, UpdateTodoDto updatedTodo, TodoStoreContext dbContext) => //add jwt authorization
         {
-            int index = todos.FindIndex((todo) => todo.Id == id);
+            var existingTodo = await dbContext.Users.FindAsync(id);
 
-            if (index == -1)
+            if (existingTodo is null)
             {
                 return Results.NotFound();
             }
-            todos[index] = new TodoDto(
-                id,
-                updatedTodo.Name,
-                updatedTodo.Category,
-                updatedTodo.DueDate,
-                updatedTodo.Complete
-            );
+
+            dbContext.Entry(existingTodo).CurrentValues.SetValues(updatedTodo.ToEntity());
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //add jwt authorization
         {
-            todos.RemoveAll(todo => todo.Id == id);
+            dbContext.Todos.Where(todo => todo.Id == id).ExecuteDelete();
+            dbContext.SaveChanges();
 
             return Results.NoContent();
         });

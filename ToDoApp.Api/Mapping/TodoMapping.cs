@@ -7,8 +7,9 @@ public static class TodoMapping
 {
     public static Todo ToEntity(this CreateTodoDto todo)
     {
-        return new Todo() //mapping incomplete, user and userId fields
+        return new Todo()
         {
+            UserId = todo.UserId,
             Name = todo.Name,
             Category = todo.Category,
             DueDate = todo.DueDate,
@@ -16,10 +17,22 @@ public static class TodoMapping
         };
     }
 
-    public static TodoDto ToDto(this TodoDto todo)
+    public static Todo ToEntity(this UpdateTodoDto todo)
+    {
+        return new Todo()
+        {
+            Name = todo.Name,
+            Category = todo.Category,
+            DueDate = todo.DueDate,
+            Complete = todo.Complete
+        };
+    }
+
+    public static TodoDto ToDto(this Todo todo)
     {
         return new TodoDto(
             todo.Id,
+            todo.UserId,
             todo.Name,
             todo.Category,
             todo.DueDate,
