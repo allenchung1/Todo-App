@@ -54,7 +54,7 @@ public static class TodosEndpoints
         var group = app.MapGroup("todos").WithParameterValidation();
         
         // GET /todos
-        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking());
+        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking()); // auth
 
         // GET /todos/1
         group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) => // add jwt authorization
@@ -63,7 +63,13 @@ public static class TodosEndpoints
             return todo is null ? Results.NotFound() : Results.Ok(todo);
         }).WithName(GetTodoById);
 
-        group.MapPost("/", (CreateTodoDto newTodo, TodoStoreContext dbContext) =>
+        group.MapGet("/user/{userId}", async (int userId, TodoStoreContext dbContext) => //auth
+        {
+            var todos = await dbContext.Todos.Where(todo => todo.UserId == userId).Select(todo => todo.ToDto()).ToListAsync();
+            return Results.Ok(todos);
+        });
+
+        group.MapPost("/", (CreateTodoDto newTodo, TodoStoreContext dbContext) => // auth
         {
             Todo todo = newTodo.ToEntity();
 

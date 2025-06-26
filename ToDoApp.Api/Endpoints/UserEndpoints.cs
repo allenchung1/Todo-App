@@ -66,7 +66,7 @@ public static class UserEndpoints
             );
         });
 
-        group.MapPut("/{id}", (int id, UpdateUserDto updatedUser, TodoStoreContext dbContext) => 
+        group.MapPut("/{id}", (int id, UpdateUserDto updatedUser, TodoStoreContext dbContext) => //auth
         {
             var existingUser = dbContext.Users.Find(id);
 
@@ -81,9 +81,9 @@ public static class UserEndpoints
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //batch delete
+        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //auth
         {
-            dbContext.Users.Where(user => user.Id == id).ExecuteDelete();
+            dbContext.Users.Where(user => user.Id == id).ExecuteDelete(); //batch delete
             dbContext.SaveChanges();
 
             return Results.NoContent();
