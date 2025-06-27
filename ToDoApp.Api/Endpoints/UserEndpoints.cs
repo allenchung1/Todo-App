@@ -38,7 +38,7 @@ public static class UserEndpoints
 
         var group = app.MapGroup("users").WithParameterValidation();
 
-        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Users/*.Include()*/.Select(user => user.ToDto()).AsNoTracking());
+        group.MapGet("/", async (TodoStoreContext dbContext) => await dbContext.Users/*.Include()*/.Select(user => user.ToDto()).AsNoTracking().ToListAsync());
 
         group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) =>
         {
@@ -57,7 +57,7 @@ public static class UserEndpoints
             User user = newUser.ToEntity();
 
             dbContext.Users.Add(user);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.AcceptedAtRoute(
                 GetUserById,
@@ -66,9 +66,9 @@ public static class UserEndpoints
             );
         });
 
-        group.MapPut("/{id}", (int id, UpdateUserDto updatedUser, TodoStoreContext dbContext) => //auth
+        group.MapPut("/{id}", async (int id, UpdateUserDto updatedUser, TodoStoreContext dbContext) => //auth
         {
-            var existingUser = dbContext.Users.Find(id);
+            var existingUser = await dbContext.Users.FindAsync(id);
 
             if (existingUser is null)
             {
@@ -76,15 +76,14 @@ public static class UserEndpoints
             }
 
             dbContext.Entry(existingUser).CurrentValues.SetValues(updatedUser.ToEntity(id));
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //auth
+        group.MapDelete("/{id}", async (int id, TodoStoreContext dbContext) => //auth
         {
-            dbContext.Users.Where(user => user.Id == id).ExecuteDelete(); //batch delete
-            dbContext.SaveChanges();
+            await dbContext.Users.Where(user => user.Id == id).ExecuteDeleteAsync(); //batch delete
 
             return Results.NoContent();
         });

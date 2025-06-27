@@ -12,6 +12,7 @@ function App() {
       }
       const json = await res.json()
       console.log(json)
+      //open a modal to enter all data
     } catch (error) {
       console.error(error)
     }

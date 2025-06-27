@@ -54,7 +54,7 @@ public static class TodosEndpoints
         var group = app.MapGroup("todos").WithParameterValidation();
         
         // GET /todos
-        group.MapGet("/", (TodoStoreContext dbContext) => dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking()); // auth
+        group.MapGet("/", async (TodoStoreContext dbContext) => await dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking().ToListAsync()); // auth
 
         // GET /todos/1
         group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) => // add jwt authorization
@@ -69,12 +69,12 @@ public static class TodosEndpoints
             return Results.Ok(todos);
         });
 
-        group.MapPost("/", (CreateTodoDto newTodo, TodoStoreContext dbContext) => // auth
+        group.MapPost("/", async (CreateTodoDto newTodo, TodoStoreContext dbContext) => // auth
         {
             Todo todo = newTodo.ToEntity();
 
             dbContext.Todos.Add(todo);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.AcceptedAtRoute(
                 GetTodoById,
@@ -93,15 +93,14 @@ public static class TodosEndpoints
             }
 
             dbContext.Entry(existingTodo).CurrentValues.SetValues(updatedTodo.ToEntity());
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
 
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", (int id, TodoStoreContext dbContext) => //add jwt authorization
+        group.MapDelete("/{id}", async (int id, TodoStoreContext dbContext) => //add jwt authorization
         {
-            dbContext.Todos.Where(todo => todo.Id == id).ExecuteDelete();
-            dbContext.SaveChanges();
+            await dbContext.Todos.Where(todo => todo.Id == id).ExecuteDeleteAsync();
 
             return Results.NoContent();
         });
