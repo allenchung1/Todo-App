@@ -1,8 +1,4 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using ToDoApp.Api.Data;
 using ToDoApp.Api.DataTransferObjects;
 using ToDoApp.Api.Entities;
@@ -15,24 +11,6 @@ public static class UserEndpoints
 {
     const string GetUserById = "GetUserById";
 
-    private static readonly List<UserDto> users = [
-        new (
-            1,
-            "allenchung1",
-            "allenchung75@gmail.com",
-            "Allen",
-            "Chung",
-            DateTime.UtcNow.AddDays(0)
-        ),
-        new (
-            2,
-            "BETH19",
-            "elizabethlee@gmail.com",
-            "Elizabeth",
-            "Lee",
-            DateTime.UtcNow.AddDays(1)
-        ),
-    ];
     public static RouteGroupBuilder MapUserEndpoints(this WebApplication app)
     {
 
@@ -88,6 +66,7 @@ public static class UserEndpoints
             return Results.NoContent();
         });
 
+        // TODO:
         // group.MapPost("/login", (LoginDto login) =>
         // {
         //     var user = users.Find(u => u.Username == LoginDto.Username && u.Password == loginDto.Password);
@@ -108,7 +87,6 @@ public static class UserEndpoints
                 access_token = tokenService.GenerateToken(loginDto.Email, loginDto.Password)
             };
         });
-
         
         return group;
     }

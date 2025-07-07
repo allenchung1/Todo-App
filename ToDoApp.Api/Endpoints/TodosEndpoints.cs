@@ -10,45 +10,6 @@ public static class TodosEndpoints
 {
     const string GetTodoById = "GetTodoById";
 
-    // private static readonly List<TodoDto> todos = [
-    //     new (
-    //         1,
-    //         "take out the trash",
-    //         "chores",
-    //         DateTime.UtcNow.AddDays(1),
-    //         false
-    //     ),
-    //     new (
-    //         2,
-    //         "do the dishes",
-    //         "chores",
-    //         DateTime.UtcNow.AddDays(2),
-    //         false
-    //     ),
-    //     new (
-    //         3,
-    //         "do laundry",
-    //         "chores",
-    //         DateTime.UtcNow.AddDays(3),
-    //         false
-    //     ),
-    //     new (
-    //         4,
-    //         "mow the lawn",
-    //         "chores",
-    //         DateTime.UtcNow.AddDays(4),
-    //         false
-    //     ),
-    //     new (
-    //         5,
-    //         "vacuum",
-    //         "chores",
-    //         DateTime.UtcNow.AddDays(5),
-    //         false
-    //     ),
-
-    // ];
-
     public static RouteGroupBuilder MapTodosEndpoints(this WebApplication app) // extension method of WebApplication class
     {
         var group = app.MapGroup("todos").WithParameterValidation();
@@ -57,13 +18,13 @@ public static class TodosEndpoints
         group.MapGet("/", async (TodoStoreContext dbContext) => await dbContext.Todos.Select(todo => todo.ToDto()).AsNoTracking().ToListAsync()); // auth
 
         // GET /todos/1
-        group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) => // add jwt authorization
+        group.MapGet("/{id}", async (int id, TodoStoreContext dbContext) => // auth
         {
             Todo? todo = await dbContext.Todos.FindAsync(id);
             return todo is null ? Results.NotFound() : Results.Ok(todo);
         }).WithName(GetTodoById);
 
-        group.MapGet("/user/{userId}", async (int userId, TodoStoreContext dbContext) => //auth
+        group.MapGet("/user/{userId}", async (int userId, TodoStoreContext dbContext) => // auth
         {
             var todos = await dbContext.Todos.Where(todo => todo.UserId == userId).Select(todo => todo.ToDto()).ToListAsync();
             return Results.Ok(todos);
@@ -83,7 +44,7 @@ public static class TodosEndpoints
             );
         });
 
-        group.MapPut("/{id}", async (int id, UpdateTodoDto updatedTodo, TodoStoreContext dbContext) => //add jwt authorization
+        group.MapPut("/{id}", async (int id, UpdateTodoDto updatedTodo, TodoStoreContext dbContext) => // auth
         {
             var existingTodo = await dbContext.Users.FindAsync(id);
 
@@ -98,7 +59,7 @@ public static class TodosEndpoints
             return Results.NoContent();
         });
 
-        group.MapDelete("/{id}", async (int id, TodoStoreContext dbContext) => //add jwt authorization
+        group.MapDelete("/{id}", async (int id, TodoStoreContext dbContext) => // auth
         {
             await dbContext.Todos.Where(todo => todo.Id == id).ExecuteDeleteAsync();
 
